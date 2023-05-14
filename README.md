@@ -25,9 +25,17 @@
     * administrators, courses, teachers and students are related to 1 school
     * A course can have 0 to 1 teachers and 0 to many students
 
-* To start this site, run "docker-compose up -d"
-* Then run "docker exec -it schoolsapi-django--web-1 /bin/bash" to enter the container
-* Then update the database by making migrations
+* To start this site on localhost:8000
+    ```
+    docker-compose up -d
+    ```
+* Then run enter the container and update the database by making migrations
+    ```
+    docker exec -it schoolsapi-django--web-1 /bin/bash
+
+    python project/manage.py makemigrations
+    python project/manage.py migrate
+    ```
 * Executes following commands in the container as needed:
     ```
     # To make update changes to database (make migrations)
