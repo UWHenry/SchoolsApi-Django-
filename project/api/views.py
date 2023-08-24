@@ -1,17 +1,20 @@
-from rest_framework import viewsets, mixins, status
+from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 
+from drf_yasg.utils import swagger_auto_schema
 from api.models import School, Administrator, Teacher, Student, Course
 from api.serializers import (
     SchoolSerializer, 
+    SchoolStatsResponse,
     AdministratorSerializer, 
     TeacherSerializer, 
     StudentSerializer, 
     CourseSerializer, 
-    TransferApiSerializer
+    TransferApiRequest,
+    TransferApiError
 )
 
 
@@ -19,10 +22,18 @@ class SchoolViewSet(viewsets.ModelViewSet):
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
 
+    @swagger_auto_schema(
+        method='get',
+        operation_description="get school stats",
+        responses={
+            200: SchoolStatsResponse,
+            404: "School Not found."
+        }
+    )
     @action(detail=True, methods=['get'], url_path="stats")
     def get_stats(self, request, pk):
         if not pk.isdigit():
-            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response("School Not found.", status=status.HTTP_404_NOT_FOUND)
         schools = School.objects.all()
         get_object_or_404(schools, pk=pk)
 
@@ -37,7 +48,7 @@ class SchoolViewSet(viewsets.ModelViewSet):
             "teachers": num_teachers,
             "students": num_students
         }
-        return Response(stats)
+        return Response(SchoolStatsResponse(stats).data)
 
 
 class AdministratorViewSet(viewsets.ModelViewSet):
@@ -56,13 +67,21 @@ class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
 
-
+@swagger_auto_schema(
+    method='post',
+    request_body=TransferApiRequest,
+    operation_description="transfer student from one course to another",
+    responses={
+        200: "Success",
+        400: TransferApiError
+    }
+)
 @api_view(["POST"])
 @transaction.atomic
 def transfer(request):
     data = request.data
     errors = {}
-    serializer = TransferApiSerializer(data=data)
+    serializer = TransferApiRequest(data=data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -80,8 +99,8 @@ def transfer(request):
     elif course_to_add_student.students.filter(id=data["studentId"]).exists():
         errors["toCourseId"] = ["Student is already enrolled."]
     if errors:
-        return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(TransferApiRequest(errors).data, status=status.HTTP_400_BAD_REQUEST)
 
     course_to_remove_student.students.remove(student)
     course_to_add_student.students.add(student)
-    return Response({})
+    return Response("Success")

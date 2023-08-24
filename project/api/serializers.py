@@ -11,6 +11,13 @@ class SchoolSerializer(serializers.ModelSerializer):
     class Meta:
         model = School
         fields = ["name", "address"]
+
+class SchoolStatsResponse(serializers.Serializer):
+    id = serializers.IntegerField(required=True, label="School ID")
+    courses = serializers.IntegerField(required=True, label="Number of courses")
+    admins = serializers.IntegerField(required=True, label="Number of administrators")
+    teachers = serializers.IntegerField(required=True, label="Number of teachers")
+    students = serializers.IntegerField(required=True, label="Number of students")
     
 class AdministratorSerializer(serializers.ModelSerializer):
     class Meta:
@@ -32,7 +39,12 @@ class CourseSerializer(serializers.ModelSerializer):
         model = Course
         fields = ["name", "location", "teacher", "school", "students"]
 
-class TransferApiSerializer(serializers.Serializer):
+class TransferApiRequest(serializers.Serializer):
     studentId = serializers.IntegerField(required=True)
     fromCourseId = serializers.IntegerField(required=True)
     toCourseId = serializers.IntegerField(required=True)
+
+class TransferApiError(serializers.Serializer):
+    studentId = serializers.CharField(required=False, label="Error Message")
+    fromCourseId = serializers.CharField(required=False, label="Error Message")
+    toCourseId = serializers.CharField(required=False, label="Error Message")
